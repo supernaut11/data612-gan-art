@@ -11,7 +11,7 @@ There are two execution modes for the script:
 
 To execute training mode, invoke the `main.py` script with the `train` argument:
 
-  python main.py train --help
+    python main.py train --help
 
 You can provide arguments for the number of epochs and size of batch. These are described in the help menu.
 
@@ -19,6 +19,6 @@ You can provide arguments for the number of epochs and size of batch. These are 
 
 To execute evaluation mode, invoke the `main.py` script with the `eval` argument:
 
-  python main.py eval --help
+    python main.py eval --help
 
 You can provide arguments for the number of samples to convert, the model to use, and output path. These are described in the help menu.
