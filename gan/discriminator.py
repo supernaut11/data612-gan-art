@@ -15,7 +15,7 @@ def build(dimensions):
     x = Conv2D(128, (4,4), strides=(2,2), padding="same", kernel_initializer=init)(x)
     x = InstanceNormalization(axis=-1)(x)
     x = LeakyReLU(alpha=0.2)(x)
-
+    '''
     x = Conv2D(256, (4,4), strides=(2,2), padding="same", kernel_initializer=init)(x)
     x = InstanceNormalization(axis=-1)(x)
     x = LeakyReLU(alpha=0.2)(x)
@@ -27,6 +27,7 @@ def build(dimensions):
     x = Conv2D(512, (4,4), padding="same", kernel_initializer=init)(x)
     x = InstanceNormalization(axis=-1)(x)
     x = LeakyReLU(alpha=0.2)(x)
+    '''
 
     outputs = Conv2D(1, (4,4), padding="same", kernel_initializer=init)(x)
 

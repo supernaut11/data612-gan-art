@@ -1,3 +1,4 @@
+import argparse
 from gan import discriminator, generator, composite
 import numpy as np
 from matplotlib import pyplot as plt
@@ -33,11 +34,7 @@ def update_image_pool(pool, images, max_size=50):
     
     return np.asarray(selected)
 
-def train(d_model_A, d_model_B, g_model_AtoB, g_model_BtoA, c_model_AtoB, c_model_BtoA, dataset):
-    #n_epochs = 100
-    n_epochs = 10
-    n_batch = 1
-
+def train(d_model_A, d_model_B, g_model_AtoB, g_model_BtoA, c_model_AtoB, c_model_BtoA, dataset, n_epochs=5, n_batch=1):
     n_patch = d_model_A.output_shape[1]
 
     trainA, trainB = dataset
@@ -97,15 +94,11 @@ def load_data(filenames, labeled=True, ordered=False):
     dataset = dataset.map(read_tfrecord, num_parallel_calls=AUTOTUNE)
     return dataset
 
-def fresh_main():
+def train_main(n_epochs, n_batch):
     dimensions = (256,256,3)
 
-    model = discriminator.build(dimensions)
-    model.summary()
-    plot_model(model, to_file="test.png", show_shapes=True, show_layer_names=True)
-
-    g_model_AtoB = generator.build(dimensions)
-    g_model_BtoA = generator.build(dimensions)
+    g_model_AtoB = generator.build(dimensions, 2)
+    g_model_BtoA = generator.build(dimensions, 2)
     d_model_A = discriminator.build(dimensions)
     d_model_B = discriminator.build(dimensions)
 
@@ -117,48 +110,48 @@ def fresh_main():
     monet_data = load_data(MONET_FILENAMES, labeled=True)
     photo_data = load_data(PHOTO_FILENAMES, labeled=True)
 
-    #dataset = tf.data.Dataset.zip((monet_data, photo_data))
+    train(d_model_A, d_model_B, g_model_AtoB, g_model_BtoA, c_model_AtoBtoA, c_model_BtoAtoB, (monet_data, photo_data), n_epochs, n_batch)
 
-    train(d_model_A, d_model_B, g_model_AtoB, g_model_BtoA, c_model_AtoBtoA, c_model_BtoAtoB, (monet_data, photo_data))
+    g_model_BtoA.save(f"photo_to_monet_model_e{n_epochs}_b{n_batch}")
+    g_model_AtoB.save(f"monet_to_photo_model_e{n_epochs}_b{n_batch}")
 
-    g_model_BtoA.save("photo_to_monet_model")
-    g_model_AtoB.save("monet_to_photo_model")
+def eval_main(model_name, out_path, n=20):
+    model = keras.models.load_model(model_name)
 
-    _, ax = plt.subplots(5, 2, figsize=(12, 12))
-    for i, img in enumerate(photo_data.take(5)):
-        prediction = g_model_BtoA(np.asarray([img]), training=False)[0]
-        prediction = (np.asarray(prediction) * 127.5 + 127.5).astype(np.uint8)
-        img = (np.asarray([img])[0] * 127.5 + 127.5).astype(np.uint8)
-
-        ax[i, 0].imshow(img)
-        ax[i, 1].imshow(prediction)
-        ax[i, 0].set_title("Input Photo")
-        ax[i, 1].set_title("Monet-esque")
-        ax[i, 0].axis("off")
-        ax[i, 1].axis("off")
-    plt.savefig("out.png")
-
-def cache_main():
-    model = keras.models.load_model("photo_to_monet_model")
-
-    dimensions = (256,256,3)
-    MONET_FILENAMES = tf.io.gfile.glob('./monet_tfrec/*.tfrec')
     PHOTO_FILENAMES = tf.io.gfile.glob('./photo_tfrec/*.tfrec')
-    monet_data = load_data(MONET_FILENAMES, labeled=True)
     photo_data = load_data(PHOTO_FILENAMES, labeled=True)
 
-    _, ax = plt.subplots(20, 2, figsize=(12, 100))
-    for i, img in enumerate(photo_data.take(20)):
+    _, ax = plt.subplots(n, 2, figsize=(12, 5 * n))
+    for i, img in enumerate(photo_data.take(n)):
         prediction = model(np.asarray([img]), training=False)[0]
         prediction = (np.asarray(prediction) * 127.5 + 127.5).astype(np.uint8)
         img = (np.asarray([img])[0] * 127.5 + 127.5).astype(np.uint8)
 
         ax[i, 0].imshow(img)
         ax[i, 1].imshow(prediction)
-        ax[i, 0].set_title("Input Photo")
-        ax[i, 1].set_title("Monet-esque")
+        ax[i, 0].set_title("Photo")
+        ax[i, 1].set_title("Fake Monet")
         ax[i, 0].axis("off")
         ax[i, 1].axis("off")
-    plt.savefig("out.png")
+    
+    plt.savefig(out_path)
 
-cache_main()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Driver for training Monet art generator")
+    subparsers = parser.add_subparsers(required=True, dest="command", help="Arguments for specific script modes")
+    
+    train_parser = subparsers.add_parser("train", description="Arguments for training mode")
+    train_parser.add_argument("--epoch", default=5, type=int, help="Number of epochs in training")
+    train_parser.add_argument("--batch", default=1, type=int, help="Batch size in training")
+    
+    eval_parser = subparsers.add_parser("eval", description="Arguments for evaluation mode")
+    eval_parser.add_argument("model_name", help="Folder name for existing model")
+    eval_parser.add_argument("--n-samples", default=20, type=int, help="Number of photos to evaluate")
+    eval_parser.add_argument("--output", default="out.png", help="Path for output file")
+
+    args = parser.parse_args()
+
+    if args.command == "train":
+        train_main(args.epoch, args.batch)
+    elif args.command == "eval":
+        eval_main(args.model_name, args.output, args.n_samples)
