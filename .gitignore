@@ -128,8 +128,13 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Project-specific excludes
 monet_jpg/
 monet_tfrec/
 photo_jpg/
 photo_tfrec/
 .vscode/
+*.png
+monet_to_photo_model*/
+photo_to_monet_model*/
+*.zip
