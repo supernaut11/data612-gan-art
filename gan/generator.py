@@ -1,53 +1,62 @@
 from tensorflow import keras
 from tensorflow.keras.initializers import RandomNormal
-from tensorflow.keras.layers import Activation, Concatenate, Conv2D, Conv2DTranspose, BatchNormalization, Input, LeakyReLU
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import Activation, Concatenate, Conv2D, Conv2DTranspose, Dropout, Input
 from tensorflow_addons.layers import InstanceNormalization
 
-def resnet_block(n_filters, input_layer):
+def downsample(num_filters, kernel_size, **kwargs):
+    result = keras.Sequential()
+    
+    result.add(Conv2D(num_filters, kernel_size, **kwargs))
+    result.add(InstanceNormalization())
+    result.add(Activation("relu"))
+
+    return result
+
+def upsample(num_filters, kernel_size, dropout=0., **kwargs):
+    result = keras.Sequential()
+
+    result.add(Conv2DTranspose(num_filters, kernel_size, **kwargs))
+    result.add(InstanceNormalization())
+    result.add(Activation("relu"))
+
+    if dropout > 0:
+        result.add(Dropout(dropout))
+
+    return result
+
+def build(dimensions, n_resnet=9, dropout=0.):
     init = RandomNormal(stddev=0.02)
 
-    x = Conv2D(n_filters, (3,3), padding="same")(input_layer)
-    x = InstanceNormalization(axis=-1)(x)
-    x = Activation("relu")(x)
+    in_image = Input(shape=[256, 256, 3])
 
-    x = Conv2D(n_filters, (3,3), padding="same")(x)
-    x = InstanceNormalization(axis=-1)(x)
+    downsamples = [
+        downsample(64, (7,7), padding="same", kernel_initializer=init),
+        downsample(128, (3,3), strides=(2,2), padding="same", kernel_initializer=init),
+        downsample(256, (3,3), strides=(2,2), padding="same", kernel_initializer=init),
+        #downsample(512, (3,3), strides=(2,2), padding="same", kernel_initializer=init),
+        #downsample(1024, (3,3), strides=(2,2), padding="same", kernel_initializer=init)
+    ]
 
-    x = Concatenate()([x, input_layer])
-    return x
+    upsamples = [
+        upsample(128, (3,3,), dropout=dropout, strides=(2,2), padding="same", kernel_initializer=init),
+        upsample(64, (3,3), dropout=dropout, strides=(2,2), padding="same", kernel_initializer=init)
+    ]
 
-def build(dimensions, n_resnet=9):
-    init = RandomNormal(stddev=0.02)
+    x = in_image
 
-    in_image = Input(shape=dimensions)
+    # Downsampling through the model
+    skips = []
+    for down in downsamples:
+        x = down(x)
+        skips.append(x)
 
-    x = Conv2D(64, (7,7), padding="same")(in_image)
-    x = InstanceNormalization(axis=-1)(x)
-    x = Activation("relu")(x)
+    skips = reversed(skips[:-1])
 
-    x = Conv2D(128, (3,3), strides=(2,2), padding="same")(x)
-    x = InstanceNormalization(axis=-1)(x)
-    x = Activation("relu")(x)
+    # Upsampling and establishing the skip connections
+    for up, skip in zip(upsamples, skips):
+        x = up(x)
+        x = Concatenate()([x, skip])
 
-    x = Conv2D(256, (3,3), strides=(2,2), padding="same")(x)
-    x = InstanceNormalization(axis=-1)(x)
-    x = Activation("relu")(x)
+    x = Conv2DTranspose(3, (7,7), padding="same", kernel_initializer=init, activation="tanh")(x)
 
-    for _ in range(n_resnet):
-        x = resnet_block(256, x)
-
-    x = Conv2DTranspose(128, (3,3), strides=(2,2), padding="same")(x)
-    x = InstanceNormalization(axis=-1)(x)
-    x = Activation("relu")(x)
-
-    x = Conv2DTranspose(64, (3,3), strides=(2,2), padding="same")(x)
-    x = InstanceNormalization(axis=-1)(x)
-    x = Activation("relu")(x)
-
-    x = Conv2D(3, (7,7), padding="same")(x)
-    x = InstanceNormalization(axis=-1)(x)
-    outputs = Activation("tanh")(x)
-
-    model = keras.Model(in_image, outputs)
-    return model
+    return keras.Model(in_image, outputs=x)

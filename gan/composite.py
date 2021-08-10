@@ -2,7 +2,7 @@ from tensorflow import keras
 from tensorflow.keras.layers import Input
 from tensorflow.keras.optimizers import Adam
 
-def build(origin, discriminator, target, dimensions):
+def build(origin, discriminator, target, dimensions, learning_rate=0.0002):
     origin.trainable = True
 
     discriminator.trainable = False
@@ -21,6 +21,6 @@ def build(origin, discriminator, target, dimensions):
     output_backward = origin(target_out)
 
     model = keras.Model([input_gen, input_id], [disc_out, output_id, output_forward, output_backward])
-    opt = Adam(lr=0.0002, beta_1=0.5)
+    opt = Adam(learning_rate=learning_rate, beta_1=0.5)
     model.compile(loss=["mse", "mae", "mae", "mae"], loss_weights=[1, 5, 10, 10], optimizer=opt)
     return model
