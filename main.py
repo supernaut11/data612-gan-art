@@ -1,6 +1,6 @@
 import argparse
 import datetime
-from gan import discriminator, generator, composite, learning_rate, cyclegan
+from gan import discriminator, generator, composite, cyclegan
 import numpy as np
 from matplotlib import pyplot as plt
 import tensorflow as tf
