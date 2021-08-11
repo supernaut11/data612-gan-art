@@ -27,6 +27,12 @@ At the end of training, a sample of 100 transformations are saved to an image. T
   1. Ends with "e{num}_b{num}_d{num}", where each number corresponds to the number of epochs, batch size, and dropout rate, respectively
   1. Saved as a PNG image
 
+### A note about training
+
+The CycleGAN built in this project requires robust hardware to train in a reasonable amount of time. The system used to develop
+and test this project has two NVIDIA GTX 1080 GPUs. Training for many epochs on a system with only CPU execution resources will not
+yield results in a reasonable amount of time.
+
 ## Eval Mode
 
 To execute evaluation mode, invoke the `main.py` script with the `eval` argument:
