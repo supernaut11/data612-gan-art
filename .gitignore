@@ -135,7 +135,9 @@ photo_jpg/
 photo_tfrec/
 .vscode/
 *.png
-*monet_to_photo_model*/
+*p2m*/
+*m2p*/
 *photo_to_monet_model*/
+*monet_to_photo_model*/
 *.zip
 logs/
