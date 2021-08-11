@@ -22,3 +22,12 @@ To execute evaluation mode, invoke the `main.py` script with the `eval` argument
     python main.py eval --help
 
 You can provide arguments for the number of samples to convert, the model to use, and output path. These are described in the help menu.
+
+# Viewing detailed training metrics
+
+This project uses TensorBoard to log and visualize metrics from the training process. Launch TensorBoard from the root directory
+of this project using the following command:
+
+    tensorboard --logdir logs/fit
+
+You can use the TensorBoard dashboard to view information including loss per epoch and network graphs.
