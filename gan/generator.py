@@ -24,7 +24,7 @@ def upsample(num_filters, kernel_size, dropout=0., **kwargs):
 
     return result
 
-def build(dimensions, n_resnet=9, dropout=0.):
+def build(name, dimensions, dropout=0.):
     init = RandomNormal(stddev=0.02)
 
     in_image = Input(shape=[256, 256, 3])
@@ -59,4 +59,4 @@ def build(dimensions, n_resnet=9, dropout=0.):
 
     x = Conv2DTranspose(3, (7,7), padding="same", kernel_initializer=init, activation="tanh")(x)
 
-    return keras.Model(in_image, outputs=x)
+    return keras.Model(in_image, outputs=x, name=name)

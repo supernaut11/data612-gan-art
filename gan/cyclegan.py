@@ -3,13 +3,13 @@ import tensorflow as tf
 from tensorflow.keras import Model
 
 class CycleGAN(Model):
-    def __init__(self, monet_gen, photo_gen, monet_disc, photo_disc):
+    def __init__(self, monet_gen, photo_gen, monet_disc, photo_disc, lambda_cycle=10):
         super().__init__()
         self._monet_gen = monet_gen
         self._photo_gen = photo_gen
         self._monet_disc = monet_disc
         self._photo_disc = photo_disc
-        self._lambda_cycle = 10
+        self._lambda_cycle = lambda_cycle
     
     def compile(self, m_gen_optimizer, p_gen_optimizer,
                 m_disc_optimizer, p_disc_optimizer,

@@ -5,36 +5,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras.utils import plot_model
-from tensorflow_addons.layers import InstanceNormalization
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
-
-def generate_real_images(dataset, n_samples, patch_shape):
-    ix = np.random.randint(0, len(list(dataset)), n_samples)
-    X = dataset[ix]
-    y = np.ones((n_samples, patch_shape, patch_shape, 1))
-    return X, y
-
-def generate_fake_images(gen_model, dataset, patch_shape):
-    X = gen_model.predict(dataset)
-    y = np.zeros((len(X), patch_shape, patch_shape, 1))
-    return X, y
-
-def update_image_pool(pool, images, max_size=50):
-    selected = list()
-    for i in images:
-        if len(pool) - 1 < max_size:
-            pool.append(i)
-            selected.append(i)
-        elif np.random.random() < 0.5:
-            selected.append(i)
-        else:
-            ix = np.random.randint(0, len(pool))
-            selected.append(pool[ix])
-            pool[ix] = i
-    
-    return np.asarray(selected)
 
 IMAGE_SIZE = [256, 256]
 
@@ -62,19 +34,19 @@ def load_data(filenames, labeled=True, ordered=False):
 def train_main(n_epochs, n_batch, dropout):
     dimensions = [256, 256, 3]
 
-    MONET_FILENAMES = tf.io.gfile.glob('./monet_tfrec/*.tfrec')
-    PHOTO_FILENAMES = tf.io.gfile.glob('./photo_tfrec/*.tfrec')
-    monet_data = load_data(MONET_FILENAMES, labeled=True).batch(n_batch)
-    photo_data = load_data(PHOTO_FILENAMES, labeled=True).batch(n_batch)
+    monet_files = tf.io.gfile.glob('./monet_tfrec/*.tfrec')
+    photo_files = tf.io.gfile.glob('./photo_tfrec/*.tfrec')
+    monet_data = load_data(monet_files, labeled=True).batch(n_batch)
+    photo_data = load_data(photo_files, labeled=True).batch(n_batch)
     
-    g_model_AtoB = generator.build(dimensions, 2, dropout)
-    g_model_BtoA = generator.build(dimensions, 2, dropout)
-    d_model_A = discriminator.build(dimensions)
-    d_model_B = discriminator.build(dimensions)
+    g_model_AtoB = generator.build("monet_gen_model", dimensions, dropout)
+    g_model_BtoA = generator.build("photo_gen_model", dimensions, dropout)
+    d_model_A = discriminator.build("monet_disc_model", dimensions)
+    d_model_B = discriminator.build("photo_disc_model", dimensions)
 
     cycle_model = cyclegan.build(g_model_AtoB, g_model_BtoA, d_model_A, d_model_B)
     
-    log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + f"-e{n_epochs}_b{n_batch}_d{int(dropout * 100)}"
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, update_freq="epoch", profile_batch=0)
 
     cycle_model.fit(tf.data.Dataset.zip((monet_data, photo_data)), epochs=n_epochs, callbacks=[tensorboard_callback])
