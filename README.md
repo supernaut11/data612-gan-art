@@ -15,6 +15,18 @@ To execute training mode, invoke the `main.py` script with the `train` argument:
 
 You can provide arguments for the number of epochs and size of batch. These are described in the help menu.
 
+When training is complete, the photo-to-monet and monet-to-photo models are saved to the current working
+directory. The template for the directory name follows these rules:
+
+  1. Starts with "p2m_model" for photo-to-monet, "m2p_model" for monet-to-photo
+  1. Ends with "e{num}_b{num}_d{num}", where each number corresponds to the number of epochs, batch size, and dropout rate, respectively
+
+At the end of training, a sample of 100 transformations are saved to an image. The template for the image name follows these rules:
+  
+  1. Starts with "out_p2m" for photo-to-monet, "out_m2p" for monet-to-photo
+  1. Ends with "e{num}_b{num}_d{num}", where each number corresponds to the number of epochs, batch size, and dropout rate, respectively
+  1. Saved as a PNG image
+
 ## Eval Mode
 
 To execute evaluation mode, invoke the `main.py` script with the `eval` argument:
